@@ -33,23 +33,28 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Use getUser() for verified server-side session check
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data) {
+      user = data.user;
+    }
+  } catch {
+    user = null;
+  }
 
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  const isProtectedRoute = pathname.startsWith("/overview") || pathname === "/";
+  const isProtectedRoute = pathname.startsWith("/overview");
 
-  if (!user && isProtectedRoute && pathname !== "/") {
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && (isAuthRoute || pathname === "/")) {
+  if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/overview";
     return NextResponse.redirect(url);
