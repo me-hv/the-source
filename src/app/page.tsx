@@ -1,100 +1,121 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getCurrentWorkspaceContext } from "@/features/workspaces/queries";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Lock, Sparkles, Feather } from "lucide-react";
 
-export default function Home() {
+export default async function HomePage() {
+  const context = await getCurrentWorkspaceContext();
+
+  if (context) {
+    redirect("/overview");
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20">
+      {/* Editorial Navigation */}
+      <header className="flex h-16 items-center justify-between border-b border-border/60 px-6 sm:px-12">
+        <div className="flex items-center space-x-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-primary/50 bg-primary/10 text-xs font-bold tracking-widest text-primary">
+            S
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-foreground">
+            THE SOURCE
+          </span>
+        </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <div className="flex items-center space-x-4">
+          <Link
+            href="/login"
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Enter Studio
+          </Link>
+          <Link href="/signup">
+            <Button size="sm" className="text-xs uppercase tracking-wider">
+              Get Started
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center sm:px-12">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span>Phase 0: Architecture & Foundation</span>
+          </div>
+
+          <h1 className="text-4xl font-normal tracking-tight text-foreground sm:text-6xl md:text-7xl font-serif">
+            Everything you create comes from something.
+          </h1>
+
+          <p className="mx-auto max-w-xl text-sm sm:text-base text-muted-foreground leading-relaxed font-sans">
+            A private creative universe for songwriters, musicians, rappers, authors, and artists.
+            Capture fleeting thoughts, organize inspiration, and preserve your creative legacy
+            with absolute sovereign privacy.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Link href="/signup">
+              <Button size="lg" className="w-full sm:w-auto text-xs uppercase tracking-widest font-semibold px-8">
+                Establish Your Source
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto text-xs uppercase tracking-widest font-semibold px-8"
+              >
+                Enter Studio
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Studio Principles */}
+        <div className="mx-auto mt-24 grid max-w-4xl grid-cols-1 gap-8 text-left sm:grid-cols-3">
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider">
+              <Lock className="h-3.5 w-3.5" />
+              <span>Sovereign Storage</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Every note, recording, and thought is private to your workspace. Row Level Security guarantees isolation.
+            </p>
+          </div>
+
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider">
+              <Feather className="h-3.5 w-3.5" />
+              <span>Zero Interference</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              No AI generates creative work on your behalf. Your voice, your lyricism, and your vision remain untouched.
+            </p>
+          </div>
+
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Creative Knowledge</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Organize, connect, and cross-reference ideas organically. Connect lyrical lines to musical references.
+            </p>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="border-t border-border/60 px-6 py-6 text-center text-xs text-muted-foreground sm:px-12">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-5xl mx-auto">
+          <span>&copy; {new Date().getFullYear()} THE SOURCE. All rights reserved.</span>
+          <span>Phase 0: Sovereign Foundation</span>
+        </div>
       </footer>
     </div>
   );

@@ -1,0 +1,3 @@
+-- THE SOURCE - Seed SQL
+-- Initial seed script for development/testing
+-- Creative tags for new workspaces can be seeded here if needed
