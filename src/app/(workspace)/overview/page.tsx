@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { getCurrentWorkspaceContext } from "@/features/workspaces/queries";
+import { getRecentItems } from "@/features/items/queries";
+import { QuickCaptureTriggerBox } from "@/features/capture/components/quick-capture-trigger-box";
+import { RecentCaptures } from "@/features/items/components/recent-captures";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mic, FileText, Bookmark, Sparkles, Shield, Compass, ArrowRight } from "lucide-react";
+import { Shield, Compass, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Overview — THE SOURCE",
@@ -12,6 +15,9 @@ export default async function OverviewPage() {
   const context = await getCurrentWorkspaceContext();
   const displayName = context?.profile.display_name || "Creator";
   const workspaceName = context?.workspace.name || "Personal Studio";
+
+  // Fetch recent captures for the authenticated workspace
+  const recentItems = context ? await getRecentItems(context.workspace.id, 12) : [];
 
   return (
     <div className="space-y-8">
@@ -36,64 +42,14 @@ export default async function OverviewPage() {
         </p>
       </div>
 
-      {/* Quick Capture Placeholder (Phase 1 preview) */}
-      <div className="rounded-lg border border-border/80 bg-card p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="flex h-5 w-5 items-center justify-center rounded border border-primary/40 bg-primary/10 text-primary">
-                <Sparkles className="h-3 w-3" />
-              </div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                Quick Capture Engine
-              </h2>
-              <span className="rounded bg-secondary px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
-                Coming in Phase 1
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Frictionless capture for fleeting audio memos, rhyme schemes, lyrical fragments, and reference imagery.
-            </p>
-          </div>
+      {/* Multi-Modal Capture Engine Launchpad */}
+      <QuickCaptureTriggerBox />
 
-          <div className="flex items-center gap-2 text-muted-foreground/60 text-xs">
-            <span className="italic">Ready for integration</span>
-          </div>
-        </div>
+      {/* Recent Captures Stream */}
+      <RecentCaptures items={recentItems} />
 
-        {/* Input Mockup Box */}
-        <div className="mt-4 flex flex-col sm:flex-row items-center gap-2 rounded-md border border-dashed border-border/80 bg-background/50 p-3">
-          <div className="flex-1 text-xs text-muted-foreground/60 italic w-full">
-            &ldquo;Record a voice note, paste a lyrical draft, or capture a reference thought...&rdquo;
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              disabled
-              className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/40 px-2.5 py-1 text-[11px] text-muted-foreground/50 cursor-not-allowed"
-            >
-              <Mic className="h-3 w-3" />
-              <span>Voice</span>
-            </button>
-            <button
-              disabled
-              className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/40 px-2.5 py-1 text-[11px] text-muted-foreground/50 cursor-not-allowed"
-            >
-              <FileText className="h-3 w-3" />
-              <span>Draft</span>
-            </button>
-            <button
-              disabled
-              className="flex items-center gap-1.5 rounded border border-border/50 bg-secondary/40 px-2.5 py-1 text-[11px] text-muted-foreground/50 cursor-not-allowed"
-            >
-              <Bookmark className="h-3 w-3" />
-              <span>Reference</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Honest Empty-State & Studio Manifesto */}
-      <div className="grid gap-6 md:grid-cols-3">
+      {/* Studio Manifesto */}
+      <div className="grid gap-6 md:grid-cols-3 pt-4 border-t border-border/60">
         <Card className="border-border/60 bg-card/60">
           <CardHeader className="p-5 pb-3">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded border border-border bg-secondary/50 text-foreground">
@@ -129,32 +85,18 @@ export default async function OverviewPage() {
         <Card className="border-border/60 bg-card/60">
           <CardHeader className="p-5 pb-3">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded border border-border bg-secondary/50 text-foreground">
-              <ArrowRight className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-primary" />
             </div>
-            <CardTitle className="text-sm font-medium">Next Horizon: Phase 1</CardTitle>
+            <CardTitle className="text-sm font-medium">Multi-Modal Flow</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Capture & Ingestion
+              Audio, lyrics, imagery & links
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5 pt-0 text-xs text-muted-foreground leading-relaxed">
-            Phase 0 establishes the database, private storage buckets, secure authentication, and
-            workspaces. Phase 1 will deliver the first-class multi-modal Capture experience.
+            Record voice memos, write Markdown lyrics, upload visual references, and archive web links
+            seamlessly from any view via the global capture shortcut.
           </CardContent>
         </Card>
-      </div>
-
-      {/* Honest Empty State Section */}
-      <div className="rounded-lg border border-dashed border-border/80 bg-background/30 p-8 text-center">
-        <div className="mx-auto max-w-md space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Workspace Empty & Untouched
-          </p>
-          <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            Your creative vault has been created with secure database ownership. No items have been
-            captured yet. When Phase 1 begins, this overview will reflect your active ideas,
-            recent audio memos, and emerging connections.
-          </p>
-        </div>
       </div>
     </div>
   );

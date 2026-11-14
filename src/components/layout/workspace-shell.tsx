@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Sidebar } from "./sidebar";
 import { WorkspaceHeader } from "./workspace-header";
+import { QuickCaptureDialog } from "@/features/capture/components/quick-capture-dialog";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import type { CurrentWorkspaceContext } from "@/features/workspaces/types";
 
 interface WorkspaceShellProps {
@@ -13,6 +15,9 @@ interface WorkspaceShellProps {
 export function WorkspaceShell({ context, children }: WorkspaceShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { workspace, profile } = context;
+
+  const quickCaptureOpen = useWorkspaceStore((state) => state.quickCaptureOpen);
+  const setQuickCaptureOpen = useWorkspaceStore((state) => state.setQuickCaptureOpen);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -36,6 +41,13 @@ export function WorkspaceShell({ context, children }: WorkspaceShellProps) {
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
       </div>
+
+      {/* Global Quick Capture Dialog (Ctrl+K / ⌘K) */}
+      <QuickCaptureDialog
+        workspaceId={workspace.id}
+        isOpen={quickCaptureOpen}
+        onOpenChange={setQuickCaptureOpen}
+      />
     </div>
   );
 }
