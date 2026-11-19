@@ -146,7 +146,7 @@ export function LinkCapture({
           ) : (
             <>
               <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
-              <span>Save Reference</span>
+              <span>Save Reference Link</span>
             </>
           )}
         </Button>

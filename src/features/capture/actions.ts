@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspaceContext } from "@/features/workspaces/queries";
+import { getCaptureRepository } from "./repositories";
 import {
   textCaptureSchema,
   linkCaptureSchema,
   fileMetaSchema,
-  sanitizeFilename,
   isSafePublicUrl,
   ALL_ALLOWED_MIME_TYPES,
   type TextCaptureInput,
@@ -41,56 +40,17 @@ export async function saveTextCaptureAction(
     };
   }
 
-  const supabase = await createClient();
-  const { title, content, richContent, contentMarkdown, status } = parsed.data;
-
   try {
-    if (draftId) {
-      const { data: updatedItem, error: updateError } = await supabase
-        .from("items")
-        .update({
-          title,
-          content,
-          rich_content: richContent,
-          content_markdown: contentMarkdown,
-          status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", draftId)
-        .eq("workspace_id", context.workspace.id)
-        .select("*")
-        .single();
+    const repo = getCaptureRepository();
+    const item = await repo.saveTextItem(
+      parsed.data,
+      context.workspace.id,
+      context.profile.id,
+      draftId
+    );
 
-      if (updateError) {
-        return { success: false, error: updateError.message };
-      }
-
-      revalidatePath("/overview");
-      return { success: true, item: updatedItem };
-    } else {
-      const { data: newItem, error: insertError } = await supabase
-        .from("items")
-        .insert({
-          workspace_id: context.workspace.id,
-          created_by: context.profile.id,
-          title,
-          kind: "note",
-          content_type: "text",
-          status,
-          content,
-          rich_content: richContent,
-          content_markdown: contentMarkdown,
-        })
-        .select("*")
-        .single();
-
-      if (insertError) {
-        return { success: false, error: insertError.message };
-      }
-
-      revalidatePath("/overview");
-      return { success: true, item: newItem };
-    }
+    revalidatePath("/overview");
+    return { success: true, item };
   } catch (err: unknown) {
     return { success: false, error: getErrorMessage(err, "Failed to save text note") };
   }
@@ -108,52 +68,15 @@ export async function saveDraftAction(
     return { success: false, error: "Authentication required" };
   }
 
-  const title = input.title?.trim() || "Untitled";
-  const content = input.content || "";
-  const richContent = input.richContent || {};
-  const contentMarkdown = input.contentMarkdown || "";
-
-  const supabase = await createClient();
-
   try {
-    if (draftId) {
-      const { data, error } = await supabase
-        .from("items")
-        .update({
-          title,
-          content,
-          rich_content: richContent,
-          content_markdown: contentMarkdown,
-          status: "draft",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", draftId)
-        .eq("workspace_id", context.workspace.id)
-        .select("id")
-        .single();
-
-      if (error) return { success: false, error: error.message };
-      return { success: true, draftId: data.id };
-    } else {
-      const { data, error } = await supabase
-        .from("items")
-        .insert({
-          workspace_id: context.workspace.id,
-          created_by: context.profile.id,
-          title,
-          kind: "note",
-          content_type: "text",
-          status: "draft",
-          content,
-          rich_content: richContent,
-          content_markdown: contentMarkdown,
-        })
-        .select("id")
-        .single();
-
-      if (error) return { success: false, error: error.message };
-      return { success: true, draftId: data.id };
-    }
+    const repo = getCaptureRepository();
+    const assignedDraftId = await repo.saveDraft(
+      input,
+      context.workspace.id,
+      context.profile.id,
+      draftId
+    );
+    return { success: true, draftId: assignedDraftId };
   } catch (err: unknown) {
     return { success: false, error: getErrorMessage(err, "Draft save failed") };
   }
@@ -197,11 +120,17 @@ export async function fetchLinkMetadataAction(
     const slice = text.slice(0, 102400);
 
     const titleMatch = slice.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const ogTitleMatch = slice.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+    const ogTitleMatch = slice.match(
+      /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i
+    );
     const title = ogTitleMatch?.[1] || titleMatch?.[1] || undefined;
 
-    const descMatch = slice.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-    const ogDescMatch = slice.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+    const descMatch = slice.match(
+      /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
+    );
+    const ogDescMatch = slice.match(
+      /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i
+    );
     const description = ogDescMatch?.[1] || descMatch?.[1] || undefined;
 
     return {
@@ -235,7 +164,7 @@ export async function saveLinkCaptureAction(
     };
   }
 
-  const { url, title, description } = parsed.data;
+  const { url, title } = parsed.data;
   let finalTitle = title;
 
   if (!finalTitle) {
@@ -251,33 +180,14 @@ export async function saveLinkCaptureAction(
     }
   }
 
-  const domain = new URL(url).hostname;
-  const supabase = await createClient();
-
   try {
-    const { data: item, error: insertError } = await supabase
-      .from("items")
-      .insert({
-        workspace_id: context.workspace.id,
-        created_by: context.profile.id,
-        title: finalTitle || "Untitled Link",
-        kind: "reference",
-        content_type: "link",
-        status: "active",
-        content: url,
-        metadata: {
-          url,
-          domain,
-          description: description || "",
-          savedAt: new Date().toISOString(),
-        },
-      })
-      .select("*")
-      .single();
-
-    if (insertError) {
-      return { success: false, error: insertError.message };
-    }
+    const repo = getCaptureRepository();
+    const item = await repo.saveLinkItem(
+      parsed.data,
+      context.workspace.id,
+      context.profile.id,
+      finalTitle || "Untitled Link"
+    );
 
     revalidatePath("/overview");
     return { success: true, item };
@@ -311,7 +221,7 @@ export async function prepareFileUploadAction(
     };
   }
 
-  const { originalFilename, mimeType, fileSize, contentType, title, metadata } = parsed.data;
+  const { mimeType } = parsed.data;
 
   const isAllowed = ALL_ALLOWED_MIME_TYPES.some((allowed) =>
     mimeType.toLowerCase().startsWith(allowed.toLowerCase())
@@ -324,40 +234,18 @@ export async function prepareFileUploadAction(
     };
   }
 
-  const supabase = await createClient();
-
   try {
-    const { data: item, error: itemError } = await supabase
-      .from("items")
-      .insert({
-        workspace_id: context.workspace.id,
-        created_by: context.profile.id,
-        title: title || originalFilename,
-        kind: "note",
-        content_type: contentType,
-        status: "draft",
-        content: originalFilename,
-        metadata: {
-          ...metadata,
-          originalFilename,
-          mimeType,
-          fileSize,
-        },
-      })
-      .select("id")
-      .single();
-
-    if (itemError) {
-      return { success: false, error: itemError.message };
-    }
-
-    const cleanFilename = sanitizeFilename(originalFilename);
-    const storagePath = `${context.workspace.id}/${item.id}/${cleanFilename}`;
+    const repo = getCaptureRepository();
+    const prep = await repo.prepareUpload(
+      parsed.data,
+      context.workspace.id,
+      context.profile.id
+    );
 
     return {
       success: true,
-      itemId: item.id,
-      storagePath,
+      itemId: prep.itemId,
+      storagePath: prep.storagePath,
       workspaceId: context.workspace.id,
     };
   } catch (err: unknown) {
@@ -366,7 +254,7 @@ export async function prepareFileUploadAction(
 }
 
 /**
- * Step 2 of upload: Once the binary is in Storage, inserts item_assets record and marks item active.
+ * Step 2 of upload: Once the binary is stored, inserts asset record and marks item active.
  */
 export async function finalizeFileUploadAction(
   itemId: string,
@@ -383,60 +271,22 @@ export async function finalizeFileUploadAction(
     return { success: false, error: "Unauthorized storage path" };
   }
 
-  const supabase = await createClient();
-
   try {
-    const { data: asset, error: assetError } = await supabase
-      .from("item_assets")
-      .insert({
-        workspace_id: context.workspace.id,
-        item_id: itemId,
-        storage_path: storagePath,
-        original_filename: fileMeta.originalFilename,
-        mime_type: fileMeta.mimeType,
-        file_size: fileMeta.fileSize,
-      })
-      .select("*")
-      .single();
-
-    if (assetError) {
-      return { success: false, error: `Asset recording failed: ${assetError.message}` };
-    }
-
-    const { data: item, error: itemUpdateError } = await supabase
-      .from("items")
-      .update({
-        status: "active",
-        title: fileMeta.title || fileMeta.originalFilename,
-        metadata: {
-          ...fileMeta.metadata,
-          originalFilename: fileMeta.originalFilename,
-          mimeType: fileMeta.mimeType,
-          fileSize: fileMeta.fileSize,
-          assetId: asset.id,
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", itemId)
-      .eq("workspace_id", context.workspace.id)
-      .select("*")
-      .single();
-
-    if (itemUpdateError) {
-      return { success: false, error: `Item update failed: ${itemUpdateError.message}` };
-    }
-
-    const { data: signedData } = await supabase.storage
-      .from("source-assets")
-      .createSignedUrl(storagePath, 3600);
+    const repo = getCaptureRepository();
+    const result = await repo.finalizeUpload(
+      itemId,
+      storagePath,
+      fileMeta,
+      context.workspace.id
+    );
 
     revalidatePath("/overview");
 
     return {
       success: true,
-      item,
-      asset,
-      signedUrl: signedData?.signedUrl || null,
+      item: result.item,
+      asset: result.asset,
+      signedUrl: result.signedUrl,
     };
   } catch (err: unknown) {
     return { success: false, error: getErrorMessage(err, "Failed to finalize upload") };
@@ -444,7 +294,7 @@ export async function finalizeFileUploadAction(
 }
 
 /**
- * Creates a signed URL for a private storage asset.
+ * Creates a preview or signed URL for a private storage asset.
  */
 export async function getSignedAssetUrlAction(
   storagePath: string
@@ -459,16 +309,18 @@ export async function getSignedAssetUrlAction(
     return { success: false, error: "Unauthorized asset access" };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.storage
-    .from("source-assets")
-    .createSignedUrl(storagePath, 3600);
+  try {
+    const repo = getCaptureRepository();
+    const signedUrl = await repo.getSignedUrl(storagePath, context.workspace.id);
 
-  if (error || !data) {
-    return { success: false, error: error?.message || "Failed to generate signed URL" };
+    if (!signedUrl) {
+      return { success: false, error: "Failed to generate signed URL" };
+    }
+
+    return { success: true, signedUrl };
+  } catch (err: unknown) {
+    return { success: false, error: getErrorMessage(err, "Failed to generate signed URL") };
   }
-
-  return { success: true, signedUrl: data.signedUrl };
 }
 
 /**
@@ -481,24 +333,10 @@ export async function deleteIncompleteCaptureAction(
   const context = await getCurrentWorkspaceContext();
   if (!context) return { success: false };
 
-  const supabase = await createClient();
-
   try {
-    if (storagePath) {
-      const pathWorkspaceId = storagePath.split("/")[0];
-      if (pathWorkspaceId === context.workspace.id) {
-        await supabase.storage.from("source-assets").remove([storagePath]);
-      }
-    }
-
-    await supabase
-      .from("items")
-      .delete()
-      .eq("id", itemId)
-      .eq("workspace_id", context.workspace.id)
-      .eq("status", "draft");
-
-    return { success: true };
+    const repo = getCaptureRepository();
+    const ok = await repo.deleteIncomplete(itemId, storagePath, context.workspace.id);
+    return { success: ok };
   } catch {
     return { success: false };
   }

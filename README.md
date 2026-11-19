@@ -10,6 +10,8 @@
 
 This repository contains **Phase 0: Project Foundation** and **Phase 1: Multi-Modal Capture Engine**.
 
+It includes full **Local Development & Vault Mode**, allowing anyone to clone, run, and test the entire multi-modal studio locally **without requiring a Supabase project or credentials**.
+
 ### Core Philosophy
 
 - **Absolute Creator Sovereignty**: Everything a creator captures belongs to them alone.
@@ -17,6 +19,48 @@ This repository contains **Phase 0: Project Foundation** and **Phase 1: Multi-Mo
 - **Organic Knowledge Graphs**: Connections between ideas are intentional and user-controlled.
 - **Zero AI Interference**: AI never silently alters content and never writes lyrics or creative work on the user's behalf.
 - **Privacy & Isolation**: Enforced at the database level through PostgreSQL Row Level Security (RLS) and storage path isolation.
+
+---
+
+## Local Development Mode (Zero Supabase Setup Required)
+
+THE SOURCE includes a clean repository abstraction layer (`CaptureRepository`) with two interchangeable adapters:
+- **`LocalCaptureRepository`**: File-backed server storage (`.local-storage/`) + browser `IndexedDB` vault for binaries and drafts.
+- **`SupabaseCaptureRepository`**: PostgreSQL + private Supabase Storage (`source-assets`) with Row Level Security.
+
+### Running 100% Locally
+
+1. Set `NEXT_PUBLIC_DATA_MODE=local` in `.env.local` (default in repository):
+   ```env
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_DATA_MODE=local
+   ```
+2. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+3. Visit `http://localhost:3000/login` or `http://localhost:3000/signup`.
+4. Click **"Enter Studio Directly (Local Mode)"** to immediately enter the studio as **Local Artist**.
+5. The workspace displays a pulsing amber indicator: `● Local Vault (No Supabase)`.
+6. Capture rich-text notes, record audio from the microphone, upload audio stems, drop images, upload documents, and bookmark inspiration links. All captures persist locally across reloads.
+
+### Production Safety Guard
+Local development mode is strictly safeguarded: if deployed to a production environment (e.g. `VERCEL_ENV === "production"`), the application throws an explicit configuration error preventing accidental mock execution in live deployments.
+
+### Connecting a Remote Supabase Project Later
+
+When ready to connect a live Supabase backend:
+1. Update `.env.local`:
+   ```env
+   NEXT_PUBLIC_DATA_MODE=supabase
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+   ```
+2. Apply the version-controlled migration:
+   ```bash
+   npx supabase db push
+   ```
+3. The application switches seamlessly to remote Supabase Auth, PostgreSQL RLS, and private Supabase Storage without code alterations.
 
 ---
 
@@ -212,16 +256,18 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Unit & Integration Tests (Vitest)
 
-Execute the 99 test specifications across all 12 test suites:
+Execute the 106 test specifications across all 14 test suites:
 
 ```bash
 npm run test
 ```
 
 Test coverage includes:
+- **`local-repository.test.ts`**: File-backed local storage CRUD, isolation, and asset URL resolution.
+- **`indexed-db.test.ts`**: Browser IndexedDB vault initialization, draft and binary asset stores.
 - **`capture-validation.test.ts`**: Validates text, link, file, audio, and image schemas, filename sanitization, and SSRF address filtering.
 - **`audio-recorder.test.ts`**: MediaRecorder lifecycle (start, pause, resume, stop, error), MIME negotiation, timer formatting.
-- **`draft-persistence.test.ts`**: LocalStorage draft caching, debounced autosave sequencing, race-condition mitigation.
+- **`draft-persistence.test.ts`**: LocalStorage and IndexedDB draft caching, debounced autosave sequencing, race-condition mitigation.
 - **`tiptap-editor.test.ts`**: Canonical ProseMirror document JSON and plain searchable text generation.
 - **`keyboard-shortcut.test.ts`**: `Ctrl+K` and `Cmd+K` global keyboard shortcut handling.
 - **`capture-actions.test.ts`**: Server actions for text save, draft save, link bookmarking, SSRF checks, storage path generation, signed URL creation, and cleanup.
@@ -229,7 +275,7 @@ Test coverage includes:
 
 ### End-to-End Tests (Playwright)
 
-Execute the Playwright test suite against the built application:
+Execute the 10 Playwright E2E test specifications against the built application:
 
 ```bash
 npm run test:e2e

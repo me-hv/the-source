@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { saveDraftAction } from "../actions";
+import { saveDraftToIndexedDB, deleteDraftFromIndexedDB } from "@/lib/storage/indexed-db";
 import type { CaptureType, DraftSaveStatus, StoredDraft } from "../types";
 
 interface UseDraftPersistenceOptions {
@@ -74,6 +75,7 @@ export function useDraftPersistence({
           updatedAt: Date.now(),
         };
         localStorage.setItem(storageKey, JSON.stringify(stored));
+        saveDraftToIndexedDB(storageKey, stored as unknown as Record<string, unknown>).catch(() => {});
       } catch {
         // LocalStorage quota or access error
       }
@@ -139,6 +141,7 @@ export function useDraftPersistence({
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem(storageKey);
+        deleteDraftFromIndexedDB(storageKey).catch(() => {});
       } catch {}
     }
   }, [storageKey]);

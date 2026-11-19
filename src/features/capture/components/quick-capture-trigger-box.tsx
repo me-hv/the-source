@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Mic, FileText, Bookmark, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Mic, FileText, Bookmark, Sparkles, Image as ImageIcon, Paperclip } from "lucide-react";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 
 export function QuickCaptureTriggerBox() {
-  const setQuickCaptureOpen = useWorkspaceStore((state) => state.setQuickCaptureOpen);
+  const openQuickCapture = useWorkspaceStore((state) => state.openQuickCapture);
 
   return (
     <div className="rounded-lg border border-border/80 bg-card p-5 sm:p-6 shadow-sm">
@@ -34,44 +34,67 @@ export function QuickCaptureTriggerBox() {
         </div>
       </div>
 
-      {/* Input Mockup Box (Clickable Launchpad) */}
-      <div
-        onClick={() => setQuickCaptureOpen(true)}
-        className="mt-4 flex flex-col sm:flex-row items-center gap-2 rounded-md border border-dashed border-border/80 bg-background/50 p-3 cursor-pointer hover:border-primary/60 transition-colors"
-      >
-        <div className="flex-1 text-xs text-muted-foreground/60 italic w-full">
-          &ldquo;Record a voice note, paste a lyrical draft, or capture a reference thought...&rdquo;
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded border border-border/60 bg-secondary/60 hover:bg-secondary px-2.5 py-1 text-[11px] text-foreground transition-colors"
-          >
-            <Mic className="h-3 w-3 text-amber-500" />
-            <span>Voice</span>
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded border border-border/60 bg-secondary/60 hover:bg-secondary px-2.5 py-1 text-[11px] text-foreground transition-colors"
-          >
-            <FileText className="h-3 w-3 text-primary" />
-            <span>Draft</span>
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded border border-border/60 bg-secondary/60 hover:bg-secondary px-2.5 py-1 text-[11px] text-foreground transition-colors"
-          >
-            <ImageIcon className="h-3 w-3 text-emerald-500" />
-            <span>Visual</span>
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded border border-border/60 bg-secondary/60 hover:bg-secondary px-2.5 py-1 text-[11px] text-foreground transition-colors"
-          >
-            <Bookmark className="h-3 w-3 text-violet-500" />
-            <span>Link</span>
-          </button>
-        </div>
+      {/* Launchpad Quick Cards */}
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <button
+          type="button"
+          onClick={() => openQuickCapture("text")}
+          className="flex flex-col items-start gap-1.5 rounded-md border border-border/80 bg-background/50 p-3 text-left hover:border-primary/60 hover:bg-secondary/40 transition-colors group"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-card text-foreground group-hover:border-primary/50">
+            <FileText className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Capture Idea</span>
+          <span className="text-[10px] text-muted-foreground">Lyrics & notes</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openQuickCapture("audio")}
+          className="flex flex-col items-start gap-1.5 rounded-md border border-border/80 bg-background/50 p-3 text-left hover:border-amber-500/60 hover:bg-secondary/40 transition-colors group"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-card text-foreground group-hover:border-amber-500/50">
+            <Mic className="h-3.5 w-3.5 text-amber-500" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Voice Take</span>
+          <span className="text-[10px] text-muted-foreground">Audio recording</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openQuickCapture("image")}
+          className="flex flex-col items-start gap-1.5 rounded-md border border-border/80 bg-background/50 p-3 text-left hover:border-emerald-500/60 hover:bg-secondary/40 transition-colors group"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-card text-foreground group-hover:border-emerald-500/50">
+            <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Visual Asset</span>
+          <span className="text-[10px] text-muted-foreground">Artwork & photos</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openQuickCapture("file")}
+          className="flex flex-col items-start gap-1.5 rounded-md border border-border/80 bg-background/50 p-3 text-left hover:border-blue-500/60 hover:bg-secondary/40 transition-colors group"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-card text-foreground group-hover:border-blue-500/50">
+            <Paperclip className="h-3.5 w-3.5 text-blue-500" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Document</span>
+          <span className="text-[10px] text-muted-foreground">PDFs & files</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openQuickCapture("link")}
+          className="col-span-2 sm:col-span-1 flex flex-col items-start gap-1.5 rounded-md border border-border/80 bg-background/50 p-3 text-left hover:border-violet-500/60 hover:bg-secondary/40 transition-colors group"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-card text-foreground group-hover:border-violet-500/50">
+            <Bookmark className="h-3.5 w-3.5 text-violet-500" />
+          </div>
+          <span className="text-xs font-medium text-foreground">Inspiration Link</span>
+          <span className="text-[10px] text-muted-foreground">URLs & references</span>
+        </button>
       </div>
     </div>
   );

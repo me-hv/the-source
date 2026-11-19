@@ -15,6 +15,7 @@ import { ImageCapture } from "./image-capture";
 import { FileCapture } from "./file-capture";
 import { LinkCapture } from "./link-capture";
 import { useCaptureShortcut } from "../hooks/use-capture-shortcut";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import { toast } from "sonner";
 import type { CaptureType, ItemRow } from "../types";
 
@@ -31,8 +32,21 @@ export function QuickCaptureDialog({
   onOpenChange: controlledOnOpenChange,
   onItemSaved,
 }: QuickCaptureDialogProps) {
+  const storeActiveType = useWorkspaceStore((state) => state.activeCaptureType);
+  const setStoreActiveType = useWorkspaceStore((state) => state.setActiveCaptureType);
+
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
-  const [activeType, setActiveType] = React.useState<CaptureType>("text");
+  const [activeType, setActiveType] = React.useState<CaptureType>(storeActiveType);
+
+  // Sync with store when opened with a specific type
+  React.useEffect(() => {
+    setActiveType(storeActiveType);
+  }, [storeActiveType]);
+
+  const handleTypeChange = (type: CaptureType) => {
+    setActiveType(type);
+    setStoreActiveType(type);
+  };
 
   const isControlled = controlledIsOpen !== undefined;
   const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
@@ -87,7 +101,7 @@ export function QuickCaptureDialog({
         {/* Tab Selector */}
         <CaptureTypeSelector
           activeType={activeType}
-          onChange={(type) => setActiveType(type)}
+          onChange={handleTypeChange}
         />
 
         {/* Dynamic Tab Body */}

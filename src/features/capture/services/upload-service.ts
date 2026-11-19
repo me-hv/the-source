@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
+import { isLocalDataMode } from "@/lib/config/data-mode";
+import { saveAssetToIndexedDB } from "@/lib/storage/indexed-db";
 import {
   prepareFileUploadAction,
   finalizeFileUploadAction,
@@ -12,7 +14,8 @@ export interface UploadProgressCallback {
 }
 
 /**
- * Uploads a binary file or recorded blob to Supabase Storage and records it in items and item_assets.
+ * Uploads a binary file or recorded blob to the active repository (Local or Supabase)
+ * and records it in items and item_assets.
  */
 export async function uploadCaptureAsset(
   fileOrBlob: File | Blob,
@@ -29,26 +32,59 @@ export async function uploadCaptureAsset(
   }
 
   const { itemId, storagePath } = prep;
-  const supabase = createClient();
 
   try {
     if (onProgress) onProgress(15);
 
-    // 2. Upload file/blob to private Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from("source-assets")
-      .upload(storagePath, fileOrBlob, {
-        contentType: fileMeta.mimeType,
-        upsert: true,
+    // Save binary into browser IndexedDB as local resilience cache
+    try {
+      await saveAssetToIndexedDB(
+        storagePath,
+        fileOrBlob,
+        fileMeta.originalFilename,
+        fileMeta.mimeType
+      );
+    } catch {
+      // Non-fatal client cache failure
+    }
+
+    if (isLocalDataMode()) {
+      // 2a. Local development mode: Upload via local storage API endpoint
+      const formData = new FormData();
+      formData.append("storagePath", storagePath);
+      formData.append("file", fileOrBlob);
+
+      const res = await fetch("/api/local-storage/upload", {
+        method: "POST",
+        body: formData,
       });
 
-    if (uploadError) {
-      // Clean up draft item on failure
-      await deleteIncompleteCaptureAction(itemId, storagePath);
-      return {
-        success: false,
-        error: `Storage upload failed: ${uploadError.message}`,
-      };
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
+        await deleteIncompleteCaptureAction(itemId, storagePath);
+        return {
+          success: false,
+          error: errorData.error || `Local upload failed (HTTP ${res.status})`,
+        };
+      }
+    } else {
+      // 2b. Supabase mode: Upload file/blob to private Supabase Storage
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from("source-assets")
+        .upload(storagePath, fileOrBlob, {
+          contentType: fileMeta.mimeType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        // Clean up draft item on failure
+        await deleteIncompleteCaptureAction(itemId, storagePath);
+        return {
+          success: false,
+          error: `Storage upload failed: ${uploadError.message}`,
+        };
+      }
     }
 
     if (onProgress) onProgress(85);

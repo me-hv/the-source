@@ -1,8 +1,34 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isLocalDataMode } from "@/lib/config/data-mode";
 import type { Database } from "@/types/database.types";
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isProtectedRoute = pathname.startsWith("/overview");
+
+  // Local development mode: Authenticates via local development session cookie
+  if (isLocalDataMode()) {
+    const hasLocalSession = request.cookies.get("source_local_session")?.value === "active";
+
+    if (!hasLocalSession && isProtectedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("redirectTo", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    if (hasLocalSession && isAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/overview";
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next({ request });
+  }
+
+  // Supabase remote / production authentication flow
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -42,10 +68,6 @@ export async function updateSession(request: NextRequest) {
   } catch {
     user = null;
   }
-
-  const pathname = request.nextUrl.pathname;
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  const isProtectedRoute = pathname.startsWith("/overview");
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();

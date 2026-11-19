@@ -1,8 +1,15 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { loginSchema, signupSchema, type LoginInput, type SignupInput } from "@/lib/validation/auth";
+import { isLocalDataMode } from "@/lib/config/data-mode";
+import {
+  loginSchema,
+  signupSchema,
+  type LoginInput,
+  type SignupInput,
+} from "@/lib/validation/auth";
 import { ensureUserWorkspace } from "@/features/workspaces/service";
 
 export interface AuthActionResult {
@@ -22,6 +29,18 @@ export async function loginAction(data: LoginInput): Promise<AuthActionResult> {
     };
   }
 
+  // Local development mode handler
+  if (isLocalDataMode()) {
+    const cookieStore = await cookies();
+    cookieStore.set("source_local_session", "active", {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+    });
+    redirect("/overview");
+  }
+
+  // Supabase remote / production handler
   const { email, password } = validation.data;
   const supabase = await createClient();
 
@@ -64,6 +83,18 @@ export async function signupAction(data: SignupInput): Promise<AuthActionResult>
     };
   }
 
+  // Local development mode handler
+  if (isLocalDataMode()) {
+    const cookieStore = await cookies();
+    cookieStore.set("source_local_session", "active", {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+    });
+    redirect("/overview");
+  }
+
+  // Supabase remote / production handler
   const { email, password, displayName } = validation.data;
   const supabase = await createClient();
 
@@ -109,7 +140,26 @@ export async function signupAction(data: SignupInput): Promise<AuthActionResult>
   };
 }
 
+export async function enterLocalStudioAction(): Promise<void> {
+  if (!isLocalDataMode()) {
+    throw new Error("Local studio entry is only available in local data mode.");
+  }
+  const cookieStore = await cookies();
+  cookieStore.set("source_local_session", "active", {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: true,
+  });
+  redirect("/overview");
+}
+
 export async function logoutAction(): Promise<void> {
+  if (isLocalDataMode()) {
+    const cookieStore = await cookies();
+    cookieStore.delete("source_local_session");
+    redirect("/login");
+  }
+
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
